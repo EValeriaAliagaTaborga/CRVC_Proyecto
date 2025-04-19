@@ -1,11 +1,20 @@
-import express from "express";
-import { obtenerUsuarios, crearUsuario } from "../controllers/usuarioController";
+// src/routes/usuarioRoutes.ts
+import { Router } from "express";
+import {
+  listarUsuarios,
+  crearUsuario,
+  actualizarUsuario,
+  eliminarUsuario
+} from "../controllers/usuarioController";
+
 import { verifyToken } from "../middleware/authMiddleware";
-import { checkRol } from "../middleware/rolMiddleware";
+import { checkRol } from "../middleware/rolMiddleware"; // asegúrate que esté configurado
 
-const router = express.Router();
+const router = Router();
 
-router.get("/usuarios", verifyToken, checkRol("1"), obtenerUsuarios);
+router.get("/usuarios", verifyToken, checkRol("1"), listarUsuarios);
 router.post("/usuarios", verifyToken, checkRol("1"), crearUsuario);
+router.put("/usuarios/:id", verifyToken, checkRol("1"), actualizarUsuario);
+router.delete("/usuarios/:id", verifyToken, checkRol("1"), eliminarUsuario);
 
 export default router;
