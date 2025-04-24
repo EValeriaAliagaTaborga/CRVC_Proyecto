@@ -24,6 +24,7 @@ export const crearPedido = async (req: Request, res: Response) => {
 
     res.status(201).json({ message: "Pedido creado correctamente", id_pedido: id });
   } catch (error: any) {
+    console.error("Error al crear pedido:", error);
     res.status(500).json({ message: "Error al registrar pedido", error: error.message });
   }
 };

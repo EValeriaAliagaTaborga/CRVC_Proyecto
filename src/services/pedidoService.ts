@@ -14,8 +14,8 @@ export const registrarPedido = async (
   id_construccion: number,
   detalles: {
     id_producto: number,
-    cantidad: number,
-    fecha_entrega: string,
+    cantidad_pedida: number,
+    fecha_estimada_entrega: string,
     precio_total: number
   }[],
   precio: number,
@@ -28,8 +28,8 @@ export const registrarPedido = async (
     await PedidoModel.createDetallePedido(
       id_pedido,
       detalle.id_producto,
-      detalle.cantidad,
-      detalle.fecha_entrega,
+      detalle.cantidad_pedida,
+      detalle.fecha_estimada_entrega,
       detalle.precio_total
     );
   }

@@ -2,9 +2,18 @@ import pool from "../config/db";
 
 export const getAllPedidos = async () => {
   const rows = await pool.query(`
-    SELECT p.*, c.direccion AS direccion_construccion
+    SELECT 
+      p.id_pedido,
+      p.fecha_creacion_pedido,
+      p.precio_pedido,
+      p.descuento_pedido,
+      p.estado_pedido,
+      c.direccion,
+      cl.nombre_empresa AS cliente
     FROM Pedidos p
     JOIN Construcciones c ON p.id_construccion = c.id_construccion
+    JOIN Clientes cl ON c.id_cliente = cl.id_cliente
+    ORDER BY p.fecha_creacion_pedido DESC;
   `);
   return rows;
 };
@@ -36,14 +45,14 @@ export const createPedido = async (
 export const createDetallePedido = async (
   id_pedido: number,
   id_producto: number,
-  cantidad: number,
-  fecha_entrega: string,
+  cantidad_pedida: number,
+  fecha_estimada_entrega: string,
   precio_total: number
 ) => {
   await pool.query(`
     INSERT INTO DetalleDePedidos (id_pedido, id_producto, cantidad_pedida, fecha_estimada_entrega, precio_total)
     VALUES (?, ?, ?, ?, ?)`,
-    [id_pedido, id_producto, cantidad, fecha_entrega, precio_total]
+    [id_pedido, id_producto, cantidad_pedida, fecha_estimada_entrega, precio_total]
   );
 };
 

@@ -1,7 +1,7 @@
 import pool from "../config/db";
 
 export const getAllConstrucciones = async () => {
-  const rows = await pool.query("SELECT * FROM Construcciones");
+  const rows = await pool.query("SELECT c.*, cl.nombre_empresa FROM Construcciones c JOIN Clientes cl ON c.id_cliente = cl.id_cliente");
   return rows;
 };
 
