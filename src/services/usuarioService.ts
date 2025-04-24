@@ -10,7 +10,7 @@ export const registrarUsuario = async (nombre: string, email: string, contrasena
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(contrasena, salt);
   const id = await UsuarioModel.createUsuario(nombre, email, hashedPassword, rol);
-  return { id, nombre, email, rol };
+  return { id: Number(id), nombre, email, rol };
 };
 
 export const editarUsuario = async (id: number, nombre: string, email: string, rol: number) => {

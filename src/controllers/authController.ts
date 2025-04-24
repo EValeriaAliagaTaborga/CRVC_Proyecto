@@ -43,7 +43,9 @@ export const loginUser = async (req: Request, res: Response) => {
     // Generar access token JWT
     const accessToken  = jwt.sign(
         { id: usuario.id_usuario.toString(),
-          rol: usuario.id_rol.toString()
+          rol: usuario.id_rol.toString(),
+          nombre: usuario.nombre.toString(),
+          email: usuario.email.toString()
          },
         process.env.JWT_SECRET || "defaultSecret",
         { expiresIn: (process.env.JWT_EXPIRATION || "1h") as jwt.SignOptions["expiresIn"] }
@@ -52,7 +54,9 @@ export const loginUser = async (req: Request, res: Response) => {
     // Generar refresh token JWT
     const refreshToken = jwt.sign(
       { id: usuario.id_usuario.toString(),
-        rol: usuario.id_rol.toString()
+        rol: usuario.id_rol.toString(),
+        nombre: usuario.nombre.toString(),
+        email: usuario.email.toString()
        },
       process.env.JWT_REFRESH_SECRET || "refreshSecret",
       { expiresIn: (process.env.JWT_REFRESH_EXPIRATION || "7d")  as jwt.SignOptions["expiresIn"] }

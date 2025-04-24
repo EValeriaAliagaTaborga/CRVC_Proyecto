@@ -6,7 +6,7 @@ import authRoutes from "./routes/authRoutes";
 import clientRoutes from "./routes/clienteRoutes";
 import construccionRoutes from "./routes/construccionRoutes";
 import productoRoutes from "./routes/productoRoutes";
-import detallePedidoRoutes from "./routes/detallePedidoRoutes";
+import pedidoRoutes from "./routes/pedidoRoutes";
 import hornoRoutes from "./routes/ordenHornoRoutes";
 
 dotenv.config();
@@ -25,7 +25,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api", clientRoutes);
 app.use("/api", construccionRoutes);
 app.use("/api", productoRoutes);
-app.use("/api", detallePedidoRoutes);
+app.use("/api", pedidoRoutes);
 app.use("/api", hornoRoutes);
 
 // Iniciar servidor

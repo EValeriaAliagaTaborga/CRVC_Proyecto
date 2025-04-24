@@ -1,49 +1,53 @@
+// src/controllers/clienteController.ts
 import { Request, Response } from "express";
-import pool from "../config/db";
+import * as ClienteService from "../services/clienteService";
 
-// Obtener todos los clientes
-export const obtenerClientes = async (_req: Request, res: Response) => {
+export const listarClientes = async (_req: Request, res: Response) => {
   try {
-    const clientes = await pool.query("SELECT * FROM Clientes");
+    const clientes = await ClienteService.obtenerClientes();
     res.json(clientes);
-  } catch (error) {
-    res.status(500).json({ mensaje: "Error al obtener clientes", error: error.message });
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al obtener clientes", error: error.message });
   }
 };
 
-// Crear un nuevo usuario
-export const registrarCliente = async (req: Request, res: Response) => {
+export const obtenerClienteEspecifico = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const cliente = await ClienteService.obtenerClienteById(Number(id));
+    res.json(cliente);
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al obtener cliente", error: error.message });
+  }
+};
+
+export const crearCliente = async (req: Request, res: Response) => {
   try {
     const { nombre_empresa, nombre_contacto, telefono_fijo, celular, email } = req.body;
+    const nuevo = await ClienteService.registrarCliente(nombre_empresa, nombre_contacto, telefono_fijo, celular, email);
+    res.status(201).json({ message: "Cliente registrado correctamente", cliente: nuevo });
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al crear cliente", error: error.message });
+  }
+};
 
-    console.log("Datos recibidos:", req.body);
+export const actualizarCliente = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { nombre_empresa, nombre_contacto, telefono_fijo, celular, email } = req.body;
+    await ClienteService.editarCliente(Number(id), nombre_empresa, nombre_contacto, telefono_fijo, celular, email);
+    res.json({ message: "Cliente actualizado correctamente" });
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al actualizar cliente", error: error.message });
+  }
+};
 
-    if (!nombre_empresa || !nombre_contacto || !celular ) {
-        res.status(400).json({ mensaje: "Nombre empresa, nombre contacto y celular son obligatorios" });
-        return;
-      }
-
-    const existing = await pool.query(
-      "SELECT * FROM Clientes WHERE nombre_empresa = ?",
-      [nombre_empresa]
-    );
-
-    if (existing !== undefined && existing.length > 0) {
-      res.status(409).json({ message: "El cliente ya está registrado" });
-      return;
-    }
-  
-    const result = await pool.query(
-      "INSERT INTO Clientes (nombre_empresa, nombre_contacto, telefono_fijo, celular, email) VALUES (?, ?, ?, ?, ?)",
-      [nombre_empresa, nombre_contacto, telefono_fijo, celular, email]
-    );
-
-    // Convertir `insertId` a `Number`
-    const insertId = Number((result as any).insertId);  
-
-    res.status(201).json({ mensaje: "Cliente creado correctamente", id: insertId });
-  } catch (error) {
-    console.error("Error en registrarCliente:", error); 
-    res.status(500).json({ mensaje: "Error al registrar cliente", error: error.message });
+export const eliminarCliente = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await ClienteService.eliminarCliente(Number(id));
+    res.json({ message: "Cliente eliminado correctamente" });
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al eliminar cliente", error: error.message });
   }
 };

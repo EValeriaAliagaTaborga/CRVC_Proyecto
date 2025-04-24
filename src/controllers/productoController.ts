@@ -1,49 +1,42 @@
 import { Request, Response } from "express";
-import pool from "../config/db";
+import * as ProductoService from "../services/productoService";
 
-// Obtener Productos en Stock
-export const obtenerProductos = async (_req: Request, res: Response) => {
+export const listarProductos = async (_req: Request, res: Response) => {
   try {
-    const stock = await pool.query("SELECT * FROM Productos");
-    res.json(stock);
-  } catch (error) {
-    res.status(500).json({ mensaje: "Error al obtener Stock", error: error.message });
+    const productos = await ProductoService.obtenerProductos();
+    res.json(productos);
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al obtener productos", error: error.message });
   }
 };
 
-// Crear un nuevo producto
-export const registrarProducto = async (req: Request, res: Response) => {
+export const crearProducto = async (req: Request, res: Response) => {
   try {
-    const { id_product, nombre_producto, precio_unitario, cantidad_stock, tipo } = req.body;
+    const { id_producto, nombre_producto, tipo, cantidad_stock, precio_unitario } = req.body;
+    const nuevo = await ProductoService.registrarProducto(id_producto, nombre_producto, tipo, cantidad_stock, precio_unitario);
+    res.status(201).json({ message: "Producto creado correctamente", producto: nuevo });
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al crear producto", error: error.message });
+  }
+};
 
-    console.log("Datos recibidos:", req.body);
+export const actualizarProducto = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { nombre_producto, tipo, cantidad_stock, precio_unitario } = req.body;
+    const update = await ProductoService.editarProducto(id, nombre_producto, tipo, cantidad_stock, precio_unitario);
+    res.json({ message: "Producto actualizado correctamente", producto: update });
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al actualizar producto", error: error.message });
+  }
+};
 
-    if (!id_product || !nombre_producto || !precio_unitario || !cantidad_stock || !tipo ) {
-        res.status(400).json({ mensaje: "Todos los campos son obligatorios" });
-        return;
-      }
-
-    const existing = await pool.query(
-      "SELECT * FROM Productos WHERE nombre_producto = ?",
-      [nombre_producto]
-    );
-
-    if (existing !== undefined && existing.length > 0) {
-      res.status(409).json({ message: "El producto ya está registrado" });
-      return;
-    }
-  
-    const result = await pool.query(
-      "INSERT INTO Productos (id_product, nombre_producto, precio_unitario, cantidad_stock, tipo) VALUES (?, ?, ?, ?, ?)",
-      [id_product, nombre_producto, precio_unitario, cantidad_stock, tipo]
-    );
-
-    // Convertir `insertId` a `Number`
-    const insertId = Number((result as any).insertId);  
-
-    res.status(201).json({ mensaje: "Producto creado correctamente", id: insertId });
-  } catch (error) {
-    console.error("Error en registrarProducto:", error); 
-    res.status(500).json({ mensaje: "Error al registrar nuevo producto", error: error.message });
+export const eliminarProducto = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await ProductoService.eliminarProducto(id);
+    res.json({ message: "Producto eliminado correctamente" });
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al eliminar producto", error: error.message });
   }
 };

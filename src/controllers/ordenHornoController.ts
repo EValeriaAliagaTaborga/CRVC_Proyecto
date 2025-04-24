@@ -1,39 +1,42 @@
 import { Request, Response } from "express";
-import pool from "../config/db";
+import * as OrdenService from "../services/ordenHornoService";
 
-// Obtener todas las ordenes de horno
-export const obtenerOrdenesHorno = async (_req: Request, res: Response) => {
+export const listarOrdenes = async (_req: Request, res: Response) => {
   try {
-    const ordenes = await pool.query("SELECT * FROM OrdenesHorno");
+    const ordenes = await OrdenService.obtenerOrdenes();
     res.json(ordenes);
-  } catch (error) {
-    res.status(500).json({ mensaje: "Error al obtener ordenes de horno", error: error.message });
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al obtener órdenes", error: error.message });
   }
 };
 
-// Crear un nueva orden de horno
-export const registrarOrdenHorno = async (req: Request, res: Response) => {
+export const crearOrden = async (req: Request, res: Response) => {
   try {
     const { id_producto, id_vagon, fecha_de_carga, cantidad_inicial_por_producir, estado } = req.body;
+    const id = await OrdenService.registrarOrden(id_producto, id_vagon, fecha_de_carga, cantidad_inicial_por_producir, estado);
+    res.status(201).json({ message: "Orden registrada correctamente", id_orden: id });
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al registrar orden", error: error.message });
+  }
+};
 
-    console.log("Datos recibidos:", req.body);
+export const actualizarOrdenFinal = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { fecha_de_descarga, calidad_primera, calidad_segunda, calidad_tercera } = req.body;
+    await OrdenService.finalizarOrden(Number(id), fecha_de_descarga, calidad_primera, calidad_segunda, calidad_tercera);
+    res.json({ message: "Orden de producción actualizada correctamente" });
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al actualizar orden", error: error.message });
+  }
+};
 
-    if (!id_producto || !id_vagon || !fecha_de_carga  || !cantidad_inicial_por_producir || !estado ) {
-      res.status(400).json({ mensaje: "id_producto, id_vagon, fecha_de_carga, cantidad_inicial_por_producir, estado son obligatorios" });
-      return;
-    }
-  
-    const result = await pool.query(
-      "INSERT INTO OrdenesHorno (id_producto, id_vagon, fecha_de_carga, cantidad_inicial_por_producir, estado) VALUES (?, ?, ?, ?, ?)",
-      [id_producto, id_vagon, fecha_de_carga, cantidad_inicial_por_producir, estado]
-    );
-
-    // Convertir `insertId` a `Number`
-    const insertId = Number((result as any).insertId);  
-
-    res.status(201).json({ mensaje: "Orden de horno creada correctamente", id: insertId });
-  } catch (error) {
-    console.error("Error en registrarCliente:", error); 
-    res.status(500).json({ mensaje: "Error al registrar orden de horno", error: error.message });
+export const eliminarOrden = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await OrdenService.eliminarOrden(Number(id));
+    res.json({ message: "Orden eliminada correctamente" });
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al eliminar orden", error: error.message });
   }
 };

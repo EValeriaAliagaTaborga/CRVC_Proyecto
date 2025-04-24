@@ -1,39 +1,50 @@
 import { Request, Response } from "express";
-import pool from "../config/db";
+import * as PedidoService from "../services/pedidoService";
 
-// Obtener todos los pedido
-export const obtenerPedido = async (_req: Request, res: Response) => {
+export const listarPedidos = async (_req: Request, res: Response) => {
   try {
-    const pedidos = await pool.query("SELECT * FROM Pedidos");
+    const pedidos = await PedidoService.obtenerPedidos();
     res.json(pedidos);
-  } catch (error) {
-    res.status(500).json({ mensaje: "Error al obtener pedidos", error: error.message });
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al obtener pedidos", error: error.message });
   }
 };
 
-// Crear un nuevo pedido
-export const registrarPedido = async (req: Request, res: Response) => {
+export const crearPedido = async (req: Request, res: Response) => {
   try {
-    const { id_construccion, id_usuario, estado_pedido } = req.body;
+    const { id_construccion, detalles, precio_pedido, descuento_pedido, estado_pedido } = req.body;
 
-    console.log("Datos recibidos:", req.body);
-
-    if (!id_construccion || !id_usuario || !estado_pedido ) {
-        res.status(400).json({ mensaje: "id_construccion, id_usuario, estado_pedido son obligatorios" });
-        return;
-      }
-  
-    const result = await pool.query(
-      "INSERT INTO Pedidos (id_construccion, id_usuario, estado_pedido) VALUES (?, ?, ?)",
-      [id_construccion, id_usuario, estado_pedido]
+    const id = await PedidoService.registrarPedido(
+      id_construccion,
+      detalles,
+      precio_pedido,
+      descuento_pedido,
+      estado_pedido
     );
 
-    // Convertir `insertId` a `Number`
-    const insertId = Number((result as any).insertId);  
+    res.status(201).json({ message: "Pedido creado correctamente", id_pedido: id });
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al registrar pedido", error: error.message });
+  }
+};
 
-    res.status(201).json({ mensaje: "Pedido creado correctamente", id: insertId });
-  } catch (error) {
-    console.error("Error en registrarPedido:", error); 
-    res.status(500).json({ mensaje: "Error al registrar pedido", error: error.message });
+export const actualizarEstadoPedido = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { estado_pedido } = req.body;
+    await PedidoService.cambiarEstadoPedido(Number(id), estado_pedido);
+    res.json({ message: "Estado de pedido actualizado correctamente" });
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al actualizar estado", error: error.message });
+  }
+};
+
+export const eliminarPedido = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await PedidoService.eliminarPedido(Number(id));
+    res.json({ message: "Pedido eliminado correctamente" });
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al eliminar pedido", error: error.message });
   }
 };

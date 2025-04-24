@@ -1,49 +1,68 @@
 import { Request, Response } from "express";
-import pool from "../config/db";
+import * as ConstruccionService from "../services/construccionService";
 
-// Obtener todos las construcciones
-export const obtenerConstrucciones = async (_req: Request, res: Response) => {
+export const listarConstrucciones = async (_req: Request, res: Response) => {
   try {
-    const construcciones = await pool.query("SELECT * FROM Construcciones");
+    const construcciones = await ConstruccionService.obtenerConstrucciones();
     res.json(construcciones);
-  } catch (error) {
-    res.status(500).json({ mensaje: "Error al obtener Construcciones", error: error.message });
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al obtener construcciones", error: error.message });
   }
 };
 
-// Crear un nueva construccion
-export const registrarConstruccion = async (req: Request, res: Response) => {
+export const obtenerConstruccionEspecifica = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const construccion = await ConstruccionService.obteneConstruccionById(Number(id));
+    res.json(construccion);
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al obtener construccion", error: error.message });
+  }
+};
+
+export const crearConstruccion = async (req: Request, res: Response) => {
   try {
     const { id_cliente, direccion, estado_obra, nombre_contacto_obra, celular_contacto_obra } = req.body;
+    const nueva = await ConstruccionService.registrarConstruccion(id_cliente, direccion, estado_obra, nombre_contacto_obra, celular_contacto_obra);
+    res.status(201).json({ message: "Construcción registrada correctamente", construccion: nueva });
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al registrar construcción", error: error.message });
+  }
+};
 
-    console.log("Datos recibidos:", req.body);
+export const actualizarConstruccion = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { direccion, estado_obra, nombre_contacto_obra, celular_contacto_obra } = req.body;
+    await ConstruccionService.editarConstruccion(Number(id), direccion, estado_obra, nombre_contacto_obra, celular_contacto_obra);
+    res.json({ message: "Construcción actualizada correctamente" });
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al actualizar construcción", error: error.message });
+  }
+};
 
-    if (!id_cliente || !direccion || !estado_obra || !nombre_contacto_obra || !celular_contacto_obra) {
-        res.status(400).json({ mensaje: "Todos los campos son obligatorios" });
-        return;
-      }
+export const eliminarConstruccion = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await ConstruccionService.eliminarConstruccion(Number(id));
+    res.json({ message: "Construcción eliminada correctamente" });
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al eliminar construcción", error: error.message });
+  }
+};
 
-    const existing = await pool.query(
-      "SELECT * FROM Construcciones WHERE direccion = ?",
-      [direccion]
-    );
+export const buscarConstrucciones = async (req: Request, res: Response) => {
+  try {
+    const { cliente, direccion, estado } = req.query;
 
-    if (existing !== undefined && existing.length > 0) {
-      res.status(409).json({ message: "Ya hay una construccion con la misma direccion registrada" });
-      return;
-    }
-  
-    const result = await pool.query(
-      "INSERT INTO Construcciones (id_cliente, direccion, estado_obra, nombre_contacto_obra, celular_contacto_obra) VALUES (?, ?, ?, ?, ?)",
-      [id_cliente, direccion, estado_obra, nombre_contacto_obra, celular_contacto_obra]
-    );
+    const construcciones = await ConstruccionService.buscarConstrucciones({
+      cliente: cliente as string,
+      direccion: direccion as string,
+      estado: estado as string
+    });
 
-    // Convertir `insertId` a `Number`
-    const insertId = Number((result as any).insertId);  
-
-    res.status(201).json({ mensaje: "Construccion creado correctamente", id: insertId });
-  } catch (error) {
-    console.error("Error en registrarConstruccion:", error); 
-    res.status(500).json({ mensaje: "Error al registrar construccion", error: error.message });
+    res.json(construcciones);
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al buscar construcciones", error: error.message });
   }
 };
