@@ -5,6 +5,11 @@ export const getAllProductos = async () => {
   return rows;
 };
 
+export const getProductoById = async (id: string) => {
+  const rows = await pool.query("SELECT * FROM Productos WHERE id_producto = ?", [id]);
+  return rows[0];
+};
+
 export const createProducto = async (id_producto:string, nombre_producto: string, tipo: string, cantidad_stock: number, precio_unitario: number) => {
   const result: any = await pool.query(
     "INSERT INTO Productos (id_producto, nombre_producto, tipo, cantidad_stock, precio_unitario) VALUES (?, ?, ?, ?, ?)",

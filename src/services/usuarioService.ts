@@ -6,6 +6,10 @@ export const obtenerUsuarios = async () => {
   return await UsuarioModel.getAllUsuarios();
 };
 
+export const obtenerUsuarioById = async (id: number) => {
+  return await UsuarioModel.getUsuarioById(id);
+};
+
 export const registrarUsuario = async (nombre: string, email: string, contrasena: string, rol: number) => {
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(contrasena, salt);

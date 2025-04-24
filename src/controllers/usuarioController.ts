@@ -11,6 +11,16 @@ export const listarUsuarios = async (_req: Request, res: Response) => {
   }
 };
 
+export const obtenerUsuarioEspecifico = async (req: Request, res: Response) => {
+  try {
+      const { id } = req.params;
+      const usuario = await UsuarioService.obtenerUsuarioById(Number(id));
+      res.json(usuario);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error al obtener usuario", error: error.message });
+    }
+  };
+
 export const crearUsuario = async (req: Request, res: Response) => {
   try {
     const { nombre, email, contrasena, id_rol } = req.body;

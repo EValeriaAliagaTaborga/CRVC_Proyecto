@@ -10,6 +10,16 @@ export const listarProductos = async (_req: Request, res: Response) => {
   }
 };
 
+export const obtenerProductoEspecifico = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const producto = await ProductoService.obtenerProductoById(id);
+    res.json(producto);
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al obtener producto", error: error.message });
+  }
+};
+
 export const crearProducto = async (req: Request, res: Response) => {
   try {
     const { id_producto, nombre_producto, tipo, cantidad_stock, precio_unitario } = req.body;
