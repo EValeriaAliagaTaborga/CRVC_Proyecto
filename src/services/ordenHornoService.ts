@@ -4,6 +4,10 @@ export const obtenerOrdenes = async () => {
   return await OrdenModel.getAllOrdenes();
 };
 
+export const obtenerOrdenById = async (id: number) => {
+  return await OrdenModel.getOrdenById(id);
+};
+
 export const registrarOrden = async (
   id_producto: number,
   id_vagon: string,
@@ -19,9 +23,10 @@ export const finalizarOrden = async (
   fecha_descarga: string,
   calidad1: number,
   calidad2: number,
-  calidad3: number
+  calidad3: number,
+  estado: string
 ) => {
-  await OrdenModel.updateOrdenFinal(id, fecha_descarga, calidad1, calidad2, calidad3);
+  await OrdenModel.updateOrdenFinal(id, fecha_descarga, calidad1, calidad2, calidad3, estado);
 };
 
 export const eliminarOrden = async (id: number) => {

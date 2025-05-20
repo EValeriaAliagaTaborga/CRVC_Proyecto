@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   listarOrdenes,
+  obtenerOrdenEspecifica,
   crearOrden,
   actualizarOrdenFinal,
   eliminarOrden
@@ -11,9 +12,10 @@ import { checkRol } from "../middleware/rolMiddleware";
 
 const router = Router();
 
-router.get("/ordenes", verifyToken, checkRol("1", "3"), listarOrdenes);
-router.post("/ordenes", verifyToken, checkRol("1", "3"), crearOrden);
-router.put("/ordenes/:id", verifyToken, checkRol("1", "3"), actualizarOrdenFinal);
-router.delete("/ordenes/:id", verifyToken, checkRol("1"), eliminarOrden);
+router.get("/produccion", verifyToken, checkRol("1", "3"), listarOrdenes);
+router.get("/produccion/:id", verifyToken, checkRol("1", "3"), obtenerOrdenEspecifica);
+router.post("/produccion", verifyToken, checkRol("1", "3"), crearOrden);
+router.put("/produccion/:id", verifyToken, checkRol("1", "3"), actualizarOrdenFinal);
+router.delete("/produccion/:id", verifyToken, checkRol("1"), eliminarOrden);
 
 export default router;

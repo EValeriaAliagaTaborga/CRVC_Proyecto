@@ -20,7 +20,7 @@ export const getAllPedidos = async () => {
 
 export const getDetallesByPedido = async (id_pedido: number) => {
   const rows = await pool.query(`
-    SELECT d.*, pr.nombre_producto
+    SELECT d.*, pr.nombre_producto, pr.tipo
     FROM DetalleDePedidos d
     JOIN Productos pr ON d.id_producto = pr.id_producto
     WHERE d.id_pedido = ?
