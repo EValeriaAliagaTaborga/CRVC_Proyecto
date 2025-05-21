@@ -4,7 +4,7 @@ export const getAllOrdenes = async () => {
   const rows = await pool.query(`
     SELECT o.*, p.nombre_producto
     FROM OrdenesProduccion o
-    JOIN Productos p ON o.id_producto = p.id_producto
+    JOIN Productos p ON o.nombre_producto = p.nombre_producto
   `);
   return rows;
 };
@@ -12,12 +12,12 @@ export const getAllOrdenes = async () => {
 export const getOrdenById = async (id: number) => {
   const rows = await pool.query(`SELECT o.*, p.nombre_producto
     FROM OrdenesProduccion o
-    JOIN Productos p ON o.id_producto = p.id_producto WHERE o.id_orden = ?`, [id]);
+    JOIN Productos p ON o.nombre_producto = p.nombre_producto WHERE o.id_orden = ?`, [id]);
   return rows[0];
 };
 
 export const createOrden = async (
-  id_producto: number,
+  nombre_producto: string,
   id_vagon: string,
   fecha_carga: string,
   cantidad_inicial: number,
@@ -25,9 +25,9 @@ export const createOrden = async (
 ) => {
   const result: any = await pool.query(
     `INSERT INTO OrdenesProduccion 
-     (id_producto, id_vagon, fecha_carga, cantidad_inicial_por_producir, estado_orden)
+     (nombre_producto, id_vagon, fecha_carga, cantidad_inicial_por_producir, estado_orden)
      VALUES (?, ?, ?, ?, ?)`,
-    [id_producto, id_vagon, fecha_carga, cantidad_inicial, estado]
+    [nombre_producto, id_vagon, fecha_carga, cantidad_inicial, estado]
   );
   return Number(result.insertId);
 };
@@ -51,13 +51,13 @@ export const updateOrdenFinal = async (
 
   // 2. Solo si el estado es "Finalizado"
   if (estado === "Finalizado") {
-    // Obtener el id_producto de la orden
+    // Obtener el nombre_producto de la orden
     const [ordenRows]: any = await pool.query(
-      "SELECT id_producto FROM OrdenesProduccion WHERE id_orden = ?",
+      "SELECT nombre_producto FROM OrdenesProduccion WHERE id_orden = ?",
       [id]
     );
 
-    const id_producto = ordenRows[0]?.id_producto;
+    const nombre_producto = ordenRows[0]?.nombre_producto;
 
     // Actualizar productos por tipo de calidad
     const updates = [
@@ -79,8 +79,8 @@ export const updateOrdenFinal = async (
       await pool.query(
         `UPDATE Productos 
          SET cantidad_stock = cantidad_stock + ?
-         WHERE id_producto = ? AND tipo = ?`,
-        [update.cantidad, id_producto, update.tipo]
+         WHERE nombre_producto = ? AND tipo = ?`,
+        [update.cantidad, nombre_producto, update.tipo]
       );
     }
   }

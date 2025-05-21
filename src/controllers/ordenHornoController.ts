@@ -22,8 +22,8 @@ export const obtenerOrdenEspecifica = async (req: Request, res: Response) => {
 
 export const crearOrden = async (req: Request, res: Response) => {
   try {
-    const { id_producto, id_vagon, fecha_carga, cantidad_inicial_por_producir, estado_orden } = req.body;
-    const id = await OrdenService.registrarOrden(id_producto, id_vagon, fecha_carga, cantidad_inicial_por_producir, estado_orden);
+    const { nombre_producto, id_vagon, fecha_carga, cantidad_inicial_por_producir, estado_orden } = req.body;
+    const id = await OrdenService.registrarOrden(nombre_producto, id_vagon, fecha_carga, cantidad_inicial_por_producir, estado_orden);
     res.status(201).json({ message: "Orden registrada correctamente", id_orden: id });
   } catch (error: any) {
     res.status(500).json({ message: "Error al registrar orden", error: error.message });

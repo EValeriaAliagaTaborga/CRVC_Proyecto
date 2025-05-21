@@ -9,13 +9,13 @@ export const obtenerOrdenById = async (id: number) => {
 };
 
 export const registrarOrden = async (
-  id_producto: number,
+  nombre_producto: string,
   id_vagon: string,
   fecha_carga: string,
   cantidad_inicial: number,
   estado: string
 ) => {
-  return await OrdenModel.createOrden(id_producto, id_vagon, fecha_carga, cantidad_inicial, estado);
+  return await OrdenModel.createOrden(nombre_producto, id_vagon, fecha_carga, cantidad_inicial, estado);
 };
 
 export const finalizarOrden = async (
