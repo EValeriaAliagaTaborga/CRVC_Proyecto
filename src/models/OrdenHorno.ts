@@ -2,17 +2,14 @@ import pool from "../config/db";
 
 export const getAllOrdenes = async () => {
   const rows = await pool.query(`
-    SELECT o.*, p.nombre_producto
-    FROM OrdenesProduccion o
-    JOIN Productos p ON o.nombre_producto = p.nombre_producto
+    SELECT * FROM OrdenesProduccion
   `);
   return rows;
 };
 
 export const getOrdenById = async (id: number) => {
-  const rows = await pool.query(`SELECT o.*, p.nombre_producto
-    FROM OrdenesProduccion o
-    JOIN Productos p ON o.nombre_producto = p.nombre_producto WHERE o.id_orden = ?`, [id]);
+  const rows = await pool.query(`
+    SELECT * FROM OrdenesProduccion WHERE id_orden = ?`, [id]);
   return rows[0];
 };
 
@@ -52,12 +49,14 @@ export const updateOrdenFinal = async (
   // 2. Solo si el estado es "Finalizado"
   if (estado === "Finalizado") {
     // Obtener el nombre_producto de la orden
-    const [ordenRows]: any = await pool.query(
+    const ordenRows: any = await pool.query(
       "SELECT nombre_producto FROM OrdenesProduccion WHERE id_orden = ?",
       [id]
     );
 
     const nombre_producto = ordenRows[0]?.nombre_producto;
+
+    console.log("🧱 nombre_producto:", nombre_producto);
 
     // Actualizar productos por tipo de calidad
     const updates = [

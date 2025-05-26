@@ -8,6 +8,8 @@ import construccionRoutes from "./routes/construccionRoutes";
 import productoRoutes from "./routes/productoRoutes";
 import pedidoRoutes from "./routes/pedidoRoutes";
 import hornoRoutes from "./routes/ordenHornoRoutes";
+import reportesRoutes from "./routes/reportesRoutes";
+import logRoutes from "./routes/logRoutes";
 
 dotenv.config();
 
@@ -27,6 +29,8 @@ app.use("/api", construccionRoutes);
 app.use("/api", productoRoutes);
 app.use("/api", pedidoRoutes);
 app.use("/api", hornoRoutes);
+app.use("/api", reportesRoutes);
+app.use("/api/logs", logRoutes);
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
