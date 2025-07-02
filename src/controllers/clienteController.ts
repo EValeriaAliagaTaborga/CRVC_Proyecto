@@ -1,6 +1,7 @@
 // src/controllers/clienteController.ts
 import { Request, Response } from "express";
 import * as ClienteService from "../services/clienteService";
+import { registrarLog } from "../utils/logHelper";
 
 export const listarClientes = async (_req: Request, res: Response) => {
   try {
@@ -25,6 +26,11 @@ export const crearCliente = async (req: Request, res: Response) => {
   try {
     const { nombre_empresa, nombre_contacto, telefono_fijo, celular, email } = req.body;
     const nuevo = await ClienteService.registrarCliente(nombre_empresa, nombre_contacto, telefono_fijo, celular, email);
+
+    // Registrar log
+    const id_usuario_log = (req as any).usuario.id;
+    await registrarLog(id_usuario_log, "Creación de Cliente", `Cliente creado: ${nombre_empresa}`);
+
     res.status(201).json({ message: "Cliente registrado correctamente", cliente: nuevo });
   } catch (error: any) {
     res.status(500).json({ message: "Error al crear cliente", error: error.message });
@@ -36,6 +42,11 @@ export const actualizarCliente = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { nombre_empresa, nombre_contacto, telefono_fijo, celular, email } = req.body;
     await ClienteService.editarCliente(Number(id), nombre_empresa, nombre_contacto, telefono_fijo, celular, email);
+
+    // Registrar log
+    const id_usuario_log = (req as any).usuario.id;
+    await registrarLog(id_usuario_log, "Actualizacion de Cliente", `Cliente actualizado: ${nombre_empresa}`);
+
     res.json({ message: "Cliente actualizado correctamente" });
   } catch (error: any) {
     res.status(500).json({ message: "Error al actualizar cliente", error: error.message });
@@ -46,6 +57,11 @@ export const eliminarCliente = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     await ClienteService.eliminarCliente(Number(id));
+
+    // Registrar log
+    const id_usuario_log = (req as any).usuario.id;
+    await registrarLog(id_usuario_log, "Creación de Cliente", `Cliente eliminado: ${id}`);
+
     res.json({ message: "Cliente eliminado correctamente" });
   } catch (error: any) {
     res.status(500).json({ message: "Error al eliminar cliente", error: error.message });

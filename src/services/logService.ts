@@ -9,14 +9,13 @@ export const crearLog = async (log: Log): Promise<void> => {
   );
 };
 
-export const obtenerLogsRecientes = async (limit: number = 10): Promise<any[]> => {
-  const [rows] = await pool.query(
-    `SELECT logs.*, usuarios.nombre_usuario 
-     FROM logs 
-     JOIN usuarios ON logs.id_usuario = usuarios.id_usuario 
-     ORDER BY fecha DESC 
-     LIMIT ?`,
-    [limit]
+export const obtenerLogsRecientes = async (): Promise<any[]> => {
+  const rows = await pool.query(
+    `SELECT logs.*, u.nombre AS nombre_usuario, r.nombre_rol AS rol
+      FROM logs
+      JOIN usuarios u ON logs.id_usuario = u.id_usuario
+      JOIN roles r ON u.id_rol = r.id_rol
+      ORDER BY fecha DESC`
   );
-  return rows as any[];
+  return rows;
 };

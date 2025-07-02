@@ -12,11 +12,10 @@ export const crearLogController = async (req: Request, res: Response) => {
   }
 };
 
-export const obtenerLogsRecientesController = async (req: Request, res: Response) => {
+export const obtenerLogsRecientesController = async (_req: Request, res: Response) => {
   try {
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-    const logs = await logService.obtenerLogsRecientes(limit);
-    res.json(logs);
+    const logs = await logService.obtenerLogsRecientes();
+    res.status(201).json(logs);
   } catch (error) {
     res.status(500).json({ message: "Error al obtener logs", error });
   }

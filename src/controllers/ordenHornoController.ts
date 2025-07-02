@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import * as OrdenService from "../services/ordenHornoService";
+import { registrarLog } from "../utils/logHelper";
 
 export const listarOrdenes = async (_req: Request, res: Response) => {
   try {
@@ -24,6 +25,10 @@ export const crearOrden = async (req: Request, res: Response) => {
   try {
     const { nombre_producto, id_vagon, fecha_carga, cantidad_inicial_por_producir, estado_orden } = req.body;
     const id = await OrdenService.registrarOrden(nombre_producto, id_vagon, fecha_carga, cantidad_inicial_por_producir, estado_orden);
+
+    const id_usuario_log = (req as any).usuario.id;
+    await registrarLog(id_usuario_log, "Creación de Orden de Producción", `Orden ID: ${id} - Producto: ${nombre_producto}`);
+
     res.status(201).json({ message: "Orden registrada correctamente", id_orden: id });
   } catch (error: any) {
     res.status(500).json({ message: "Error al registrar orden", error: error.message });
@@ -35,7 +40,11 @@ export const actualizarOrdenFinal = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { fecha_descarga, cantidad_final_calidad_primera, cantidad_final_calidad_segunda, cantidad_final_calidad_tercera, estado_orden } = req.body;
     await OrdenService.finalizarOrden(Number(id), fecha_descarga, cantidad_final_calidad_primera, cantidad_final_calidad_segunda, cantidad_final_calidad_tercera, estado_orden);
-    res.json({ message: "Orden de producción actualizada correctamente" });
+    
+    const id_usuario_log = (req as any).usuario.id;
+    await registrarLog(id_usuario_log, "Actualizacion de Orden de Producción", `Orden ID: ${id} - Producto: ${estado_orden}`);
+    
+    res.status(201).json({ message: "Orden de producción actualizada correctamente" });
   } catch (error: any) {
     res.status(500).json({ message: "Error al actualizar orden", error: error.message });
   }
@@ -45,7 +54,11 @@ export const eliminarOrden = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     await OrdenService.eliminarOrden(Number(id));
-    res.json({ message: "Orden eliminada correctamente" });
+
+    const id_usuario_log = (req as any).usuario.id;
+    await registrarLog(id_usuario_log, "Eliminar Orden de Producción", `Orden ID: ${id}`);
+
+    res.status(201).json({ message: "Orden eliminada correctamente" });
   } catch (error: any) {
     res.status(500).json({ message: "Error al eliminar orden", error: error.message });
   }

@@ -10,6 +10,7 @@ import pedidoRoutes from "./routes/pedidoRoutes";
 import hornoRoutes from "./routes/ordenHornoRoutes";
 import reportesRoutes from "./routes/reportesRoutes";
 import logRoutes from "./routes/logRoutes";
+import metricasRoutes from "./routes/metricasRoutes";
 
 dotenv.config();
 
@@ -31,6 +32,7 @@ app.use("/api", pedidoRoutes);
 app.use("/api", hornoRoutes);
 app.use("/api", reportesRoutes);
 app.use("/api/logs", logRoutes);
+app.use("/api", metricasRoutes);
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
