@@ -28,33 +28,41 @@ export const getDetallesByPedido = async (id_pedido: number) => {
   return rows;
 };
 
+// src/models/Pedido.ts
+
 export const createPedido = async (
   id_construccion: number,
   precio: number,
   descuento: number,
+  tipo_descuento: string,
   estado: string
 ) => {
-  const result: any = await pool.query(`
-    INSERT INTO Pedidos (id_construccion, fecha_creacion_pedido, precio_pedido, descuento_pedido, estado_pedido)
-    VALUES (?, NOW(), ?, ?, ?)`,
-    [id_construccion, precio, descuento, estado]
+  const result: any = await pool.query(
+    `INSERT INTO Pedidos 
+       (id_construccion, fecha_creacion_pedido, precio_pedido, descuento_pedido, tipo_descuento, estado_pedido)
+     VALUES (?, NOW(), ?, ?, ?, ?)`,
+    [id_construccion, precio, descuento, tipo_descuento, estado]
   );
   return Number(result.insertId);
 };
 
+
+
 export const createDetallePedido = async (
   id_pedido: number,
-  id_producto: number,
+  id_producto: string,
   cantidad_pedida: number,
   fecha_estimada_entrega: string,
   precio_total: number
 ) => {
-  await pool.query(`
-    INSERT INTO DetalleDePedidos (id_pedido, id_producto, cantidad_pedida, fecha_estimada_entrega, precio_total)
-    VALUES (?, ?, ?, ?, ?)`,
+  await pool.query(
+    `INSERT INTO DetalleDePedidos 
+       (id_pedido, id_producto, cantidad_pedida, fecha_estimada_entrega, precio_total)
+     VALUES (?, ?, ?, ?, ?)`,
     [id_pedido, id_producto, cantidad_pedida, fecha_estimada_entrega, precio_total]
   );
 };
+
 
 export const updateEstadoPedido = async (id: number, nuevoEstado: string) => {
   await pool.query("UPDATE Pedidos SET estado_pedido = ? WHERE id_pedido = ?", [nuevoEstado, id]);
@@ -64,3 +72,10 @@ export const deletePedido = async (id: number) => {
   await pool.query("DELETE FROM DetalleDePedidos WHERE id_pedido = ?", [id]);
   await pool.query("DELETE FROM Pedidos WHERE id_pedido = ?", [id]);
 };
+
+export const updateDetalleEntrega = async (id_detalle: number, entregado: boolean) => {
+  await pool.query(
+    `UPDATE DetalleDePedidos SET entregado = ? WHERE id_detalle_pedido = ?`,
+    [entregado ? 1 : 0, id_detalle]
+  );
+}
