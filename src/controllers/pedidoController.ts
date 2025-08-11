@@ -101,3 +101,18 @@ export const actualizarEntregaDetalle = async (req: Request, res: Response) => {
       .json({ message: "Error actualizando entrega", error: err.message });
   }
 };
+
+export const actualizarDetallePedido = async (req: Request, res: Response) => {
+  try {
+    const { detalleId } = req.params;
+    const { entregado, fecha_estimada_entrega } = req.body;
+    await PedidoService.actualizarDetalle(
+      Number(detalleId),
+      Boolean(entregado),
+      fecha_estimada_entrega
+    );
+    res.json({ message: "Detalle de pedido actualizado" });
+  } catch (err: any) {
+    res.status(500).json({ message: "Error actualizando detalle", error: err.message });
+  }
+};

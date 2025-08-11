@@ -79,3 +79,16 @@ export const updateDetalleEntrega = async (id_detalle: number, entregado: boolea
     [entregado ? 1 : 0, id_detalle]
   );
 }
+
+export const updateDetallePedido = async (
+  id_detalle: number,
+  entregado: boolean,
+  fecha_estimada_entrega: string
+) => {
+  await pool.query(
+    `UPDATE DetalleDePedidos
+     SET entregado = ?, fecha_estimada_entrega = ?
+     WHERE id_detalle_pedido = ?`,
+    [entregado ? 1 : 0, fecha_estimada_entrega, id_detalle]
+  );
+};

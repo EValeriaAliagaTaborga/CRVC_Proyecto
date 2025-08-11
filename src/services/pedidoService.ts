@@ -64,3 +64,15 @@ export const eliminarPedido = async (id: number) => {
 export const cambiarEntregaDetalle = async (id_detalle: number, entregado: boolean) => {
   await PedidoModel.updateDetalleEntrega(id_detalle, entregado);
 };
+
+export const actualizarDetalle = async (
+  id_detalle: number,
+  entregado: boolean,
+  fecha_estimada_entrega: string
+) => {
+  await PedidoModel.updateDetallePedido(
+    id_detalle,
+    entregado,
+    fecha_estimada_entrega
+  );
+};
