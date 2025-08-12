@@ -63,3 +63,71 @@ export const eliminarProducto = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Error al eliminar producto", error: error.message });
   }
 };
+
+export const listarMovimientosPorProducto = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params; // id_producto
+    const { tipo, desde, hasta } = req.query as { tipo?: "ENTRADA" | "SALIDA" | ""; desde?: string; hasta?: string; };
+    const movimientos = await ProductoService.obtenerMovimientosProducto(id, {
+      tipo: (tipo === "ENTRADA" || tipo === "SALIDA") ? tipo : "",
+      desde, hasta,
+    });
+    res.json(movimientos);
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al obtener kardex", error: error.message });
+  }
+};
+
+export const exportarMovimientosPorProducto = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params; // id_producto
+    const { tipo, desde, hasta, formato } = req.query as { tipo?: "ENTRADA"|"SALIDA"|""; desde?: string; hasta?: string; formato?: "pdf"|"xlsx"; };
+    const filtros: { tipo?: "" | "ENTRADA" | "SALIDA"; desde?: string; hasta?: string } = { 
+      tipo: (tipo === "ENTRADA" || tipo === "SALIDA") ? tipo : "", 
+      desde, 
+      hasta 
+    };
+
+    if (formato === "xlsx") {
+      const buf = await ProductoService.exportarKardexExcel(id, filtros);
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", `attachment; filename="kardex_${id}.xlsx"`);
+      res.send(buf);
+    }
+
+    const buf = await ProductoService.exportarKardexPDF(id, filtros);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="kardex_${id}.pdf"`);
+    res.send(buf);
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({ message: "Error al exportar kardex", error: error.message });
+  }
+};
+
+/** Consolidado (Todos los productos) */
+export const exportarMovimientosConsolidado = async (req: Request, res: Response) => {
+  try {
+    const { tipo, desde, hasta, formato } = req.query as { tipo?: "ENTRADA"|"SALIDA"|""; desde?: string; hasta?: string; formato?: "pdf"|"xlsx"; };
+    const filtros: { tipo?: "" | "ENTRADA" | "SALIDA"; desde?: string; hasta?: string } = { 
+      tipo: (tipo === "ENTRADA" || tipo === "SALIDA") ? tipo as "" | "ENTRADA" | "SALIDA" : "", 
+      desde, 
+      hasta 
+    };
+
+    if (formato === "xlsx") {
+      const buf = await ProductoService.exportarKardexExcelConsolidado(filtros);
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", `attachment; filename="kardex_todos.xlsx"`);
+      res.send(buf);
+    }
+
+    const buf = await ProductoService.exportarKardexPDFConsolidado(filtros);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="kardex_todos.pdf"`);
+    res.send(buf);
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({ message: "Error al exportar kardex (consolidado)", error: error.message });
+  }
+};

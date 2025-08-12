@@ -19,12 +19,15 @@ export const getAllPedidos = async () => {
 };
 
 export const getDetallesByPedido = async (id_pedido: number) => {
-  const rows = await pool.query(`
+  const rows = await pool.query(
+    `
     SELECT d.*, pr.nombre_producto, pr.tipo
     FROM DetalleDePedidos d
     JOIN Productos pr ON d.id_producto = pr.id_producto
     WHERE d.id_pedido = ?
-  `, [id_pedido]);
+  `,
+    [id_pedido]
+  );
   return rows;
 };
 
@@ -46,8 +49,6 @@ export const createPedido = async (
   return Number(result.insertId);
 };
 
-
-
 export const createDetallePedido = async (
   id_pedido: number,
   id_producto: string,
@@ -63,7 +64,6 @@ export const createDetallePedido = async (
   );
 };
 
-
 export const updateEstadoPedido = async (id: number, nuevoEstado: string) => {
   await pool.query("UPDATE Pedidos SET estado_pedido = ? WHERE id_pedido = ?", [nuevoEstado, id]);
 };
@@ -78,7 +78,7 @@ export const updateDetalleEntrega = async (id_detalle: number, entregado: boolea
     `UPDATE DetalleDePedidos SET entregado = ? WHERE id_detalle_pedido = ?`,
     [entregado ? 1 : 0, id_detalle]
   );
-}
+};
 
 export const updateDetallePedido = async (
   id_detalle: number,

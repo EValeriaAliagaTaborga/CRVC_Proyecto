@@ -26,11 +26,11 @@ export const crearPedido = async (req: Request, res: Response) => {
 
     const id = await PedidoService.registrarPedido(
       Number(id_construccion),
-    detalles,
-    Number(precio_pedido),
-    Number(descuento_pedido),
-    tipo_descuento,
-    estado_pedido
+      detalles,
+      Number(precio_pedido),
+      Number(descuento_pedido),
+      tipo_descuento,
+      estado_pedido
     );
     res
       .status(201)
@@ -85,17 +85,42 @@ export const eliminarPedido = async (req: Request, res: Response) => {
 
 export const actualizarEntregaDetalle = async (req: Request, res: Response) => {
   try {
+    const pedidoId = Number(req.params.id);
     const detalleId = Number(req.params.detalleId);
     const { entregado } = req.body as { entregado: boolean };
 
-    await PedidoService.cambiarEntregaDetalle(detalleId, entregado);
+    const user = (req as any).usuario || {};
+    const userId = user.id;
+    const userRol = user.rol; // "1" admin, "2" vendedor
 
-    res.json({
-      message: "Estado de entrega actualizado",
+    const result = await PedidoService.actualizarEntregaDetalleTransaccional(
+      pedidoId,
       detalleId,
       entregado,
-    });
+      userId,
+      userRol
+    );
+
+    // Log
+    try {
+      await registrarLog(
+        userId,
+        "Entrega de Detalle",
+        `Pedido ${pedidoId}, Detalle ${detalleId}, entregado=${entregado}`
+      );
+    } catch {}
+
+    res.json(result);
   } catch (err: any) {
+    if (err.code === "INSUFFICIENT_STOCK") {
+      return res.status(409).json({ message: err.message });
+    }
+    if (err.code === "REVERT_NOT_ALLOWED") {
+      return res.status(400).json({ message: err.message });
+    }
+    if (err.code === "ORDER_CANCELED") {
+      return res.status(400).json({ message: err.message });
+    }
     res
       .status(500)
       .json({ message: "Error actualizando entrega", error: err.message });
