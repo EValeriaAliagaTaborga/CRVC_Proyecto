@@ -52,15 +52,17 @@ export const createDetallePedido = async (
   id_producto: string,
   cantidad_pedida: number,
   fecha_estimada_entrega: string,
-  precio_total: number
+  precio_total: number,
+  entregado: boolean = false
 ) => {
   await pool.query(
     `INSERT INTO DetalleDePedidos 
-       (id_pedido, id_producto, cantidad_pedida, fecha_estimada_entrega, precio_total)
-     VALUES (?, ?, ?, ?, ?)`,
-    [id_pedido, id_producto, cantidad_pedida, fecha_estimada_entrega, precio_total]
+       (id_pedido, id_producto, cantidad_pedida, fecha_estimada_entrega, precio_total, entregado)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [id_pedido, id_producto, cantidad_pedida, fecha_estimada_entrega, precio_total, entregado ? 1 : 0]
   );
 };
+
 
 export const updateEstadoPedido = async (id: number, nuevoEstado: string) => {
   await pool.query("UPDATE Pedidos SET estado_pedido = ? WHERE id_pedido = ?", [nuevoEstado, id]);
