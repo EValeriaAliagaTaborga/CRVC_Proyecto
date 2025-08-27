@@ -11,6 +11,10 @@ import hornoRoutes from "./routes/ordenHornoRoutes";
 import reportesRoutes from "./routes/reportesRoutes";
 import logRoutes from "./routes/logRoutes";
 import metricasRoutes from "./routes/metricasRoutes";
+import demandaProduccionRoutes from "./routes/demandaProduccionRoutes";
+import notificacionRoutes from "./routes/notificacionRoutes";
+
+import devMailRoutes from "./routes/devMailRoutes";
 
 dotenv.config();
 
@@ -27,12 +31,17 @@ app.use("/api", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api", clientRoutes);
 app.use("/api", construccionRoutes);
+app.use("/api", demandaProduccionRoutes);
+app.use("/api", notificacionRoutes);
 app.use("/api", productoRoutes);
 app.use("/api", pedidoRoutes);
 app.use("/api", hornoRoutes);
 app.use("/api", reportesRoutes);
 app.use("/api/logs", logRoutes);
 app.use("/api", metricasRoutes);
+
+app.use("/api", devMailRoutes);
+
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;

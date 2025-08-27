@@ -173,7 +173,6 @@ export const exportarKardexExcelConsolidado = async (filtros: { tipo?: "ENTRADA"
   let globalSalidas = 0;
 
   Object.entries(byProd).forEach(([id_producto, rows]) => {
-    // Encabezado de sección
     const header = ws.addRow({ id_producto: `Producto: ${id_producto}` });
     header.font = { bold: true };
 
@@ -202,22 +201,19 @@ export const exportarKardexExcelConsolidado = async (filtros: { tipo?: "ENTRADA"
       id_producto: `Subtotal ${id_producto} — Entradas: ${entradas} | Salidas: ${salidas} | Neto: ${neto}`
     });
     sub.font = { bold: true };
-    ws.addRow({}); // separación
+    ws.addRow({});
   });
 
-  // ----- GRAN TOTAL GLOBAL -----
   const netoGlobal = globalEntradas - globalSalidas;
   const totalRow = ws.addRow({
     id_producto: `TOTAL GLOBAL — Entradas: ${globalEntradas} | Salidas: ${globalSalidas} | Neto: ${netoGlobal}`
   });
   totalRow.font = { bold: true };
-  // Línea de separación estética
   ws.addRow({});
 
   const buf = await wb.xlsx.writeBuffer();
   return Buffer.from(buf);
 };
-
 
 function htmlKardexConsolidado({
   movimientos,
@@ -226,7 +222,6 @@ function htmlKardexConsolidado({
   movimientos: any[];
   filtros: { tipo?: string; desde?: string; hasta?: string };
 }) {
-  // Agrupar por producto
   const byProd: Record<string, any[]> = {};
   for (const m of movimientos) {
     byProd[m.id_producto] = byProd[m.id_producto] || [];
@@ -260,7 +255,6 @@ function htmlKardexConsolidado({
     }).join("");
     const neto = entradas - salidas;
 
-    // Acumular al global
     globalEntradas += entradas;
     globalSalidas  += salidas;
 
@@ -324,7 +318,6 @@ function htmlKardexConsolidado({
   `;
 }
 
-
 export const exportarKardexPDFConsolidado = async (filtros: { tipo?: "ENTRADA" | "SALIDA" | ""; desde?: string; hasta?: string }) => {
   const movimientos = await obtenerMovimientosTodos(filtros) as any[];
   const html = htmlKardexConsolidado({ movimientos, filtros });
@@ -343,4 +336,3 @@ export const exportarKardexPDFConsolidado = async (filtros: { tipo?: "ENTRADA" |
     await browser.close();
   }
 };
-

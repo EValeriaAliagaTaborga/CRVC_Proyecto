@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import pool from "../config/db";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import * as PasswordResetService from "../services/passwordResetService";
 
 export const loginUser = async (req: Request, res: Response) => {
   try {
@@ -117,5 +118,38 @@ export const logoutUser = async (req: Request, res: Response) => {
     console.error("Error al cerrar sesión:", error);
     res.status(500).json({ message: "Error del servidor", error: error.message });
     return;
+  }
+};
+
+/** POST /api/auth/password/solicitar */
+export const solicitarResetPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body as { email: string };
+    if (!email)  res.status(400).json({ message: "Email requerido" });
+
+    await PasswordResetService.solicitarReset(email);
+
+    // Respuesta neutral para no filtrar usuarios
+    res.json({ message: "Si el correo existe, se envió un enlace de restablecimiento." });
+  } catch (err: any) {
+    res.status(500).json({ message: "No se pudo procesar la solicitud", error: err.message });
+  }
+};
+
+/** POST /api/auth/password/restablecer */
+export const restablecerPassword = async (req: Request, res: Response) => {
+  try {
+    const { token, nueva_contrasena } = req.body as { token: string; nueva_contrasena: string };
+    if (!token || !nueva_contrasena) {
+       res.status(400).json({ message: "Faltan parámetros" });
+    }
+    if (nueva_contrasena.length < 6) {
+       res.status(400).json({ message: "La contraseña debe tener al menos 6 caracteres" });
+    }
+
+    await PasswordResetService.restablecerContrasena(token, nueva_contrasena);
+    res.json({ message: "Contraseña actualizada" });
+  } catch (err: any) {
+    res.status(400).json({ message: err.message || "No se pudo restablecer" });
   }
 };

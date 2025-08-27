@@ -31,8 +31,6 @@ export const getDetallesByPedido = async (id_pedido: number) => {
   return rows;
 };
 
-// src/models/Pedido.ts
-
 export const createPedido = async (
   id_construccion: number,
   precio: number,
@@ -90,5 +88,51 @@ export const updateDetallePedido = async (
      SET entregado = ?, fecha_estimada_entrega = ?
      WHERE id_detalle_pedido = ?`,
     [entregado ? 1 : 0, fecha_estimada_entrega, id_detalle]
+  );
+};
+
+/* ==================== Helpers para Transacciones ==================== */
+
+// Obtener conexión (mysql2/promise Pool)
+export const getConnection = async (): Promise<any> => {
+  // @ts-ignore - tu wrapper de pool expone getConnection en mysql2/promise
+  const conn = await pool.getConnection();
+  return conn;
+};
+
+export const getPedidoByIdTx = async (conn: any, id_pedido: number) => {
+  const rows = await conn.query("SELECT * FROM Pedidos WHERE id_pedido = ? LIMIT 1", [id_pedido]);
+  return rows[0];
+};
+
+export const getDetalleByIdTx = async (conn: any, id_detalle: number) => {
+  const rows = await conn.query(
+    `SELECT * FROM DetalleDePedidos WHERE id_detalle_pedido = ? LIMIT 1`,
+    [id_detalle]
+  );
+  return rows[0];
+};
+
+export const updateDetalleEntregaTx = async (conn: any, id_detalle: number, entregado: boolean) => {
+  await conn.query(
+    `UPDATE DetalleDePedidos SET entregado = ? WHERE id_detalle_pedido = ?`,
+    [entregado ? 1 : 0, id_detalle]
+  );
+};
+
+export const countDetallesPendientesTx = async (conn: any, id_pedido: number) => {
+  const rows = await conn.query(
+    `SELECT COUNT(*) AS pendientes
+     FROM DetalleDePedidos
+     WHERE id_pedido = ? AND (entregado IS NULL OR entregado = 0)`,
+    [id_pedido]
+  );
+  return Number(rows[0]?.pendientes ?? 0);
+};
+
+export const updateEstadoPedidoTx = async (conn: any, id_pedido: number, estado: string) => {
+  await conn.query(
+    `UPDATE Pedidos SET estado_pedido = ? WHERE id_pedido = ?`,
+    [estado, id_pedido]
   );
 };

@@ -1,5 +1,7 @@
 import * as PedidoModel from "../models/Pedido";
-import pool from "../config/db";
+import * as ProductoModel from "../models/Producto";
+import * as DemandaService from "./demandaProduccionService";
+import * as NotiService from "./notificacionService";
 
 export const obtenerPedidos = async () => {
   const pedidos: any[] = await PedidoModel.getAllPedidos();
@@ -31,11 +33,7 @@ export const registrarPedido = async (
   estado: string
 ) => {
   const id_pedido = await PedidoModel.createPedido(
-    id_construccion,
-    precio,
-    descuento,
-    tipo_descuento,
-    estado
+    id_construccion, precio, descuento, tipo_descuento, estado
   );
 
   for (const detalle of detalles) {
@@ -46,7 +44,26 @@ export const registrarPedido = async (
       detalle.fecha_estimada_entrega,
       detalle.precio_total
     );
+
+    // ---- Acumular demanda de producción + notificar rol 3 ----
+    const prod = await ProductoModel.getProductoById(detalle.id_producto);
+    if (prod) {
+      await DemandaService.acumularDemanda({
+        id_producto: detalle.id_producto,
+        nombre_producto: prod.nombre_producto,
+        tipo: prod.tipo,
+        cantidad: Number(detalle.cantidad_pedida) || 0,
+        fecha_objetivo: detalle.fecha_estimada_entrega?.split("T")[0] || null
+      });
+    }
   }
+
+  // Notificar a Encargados de Producción (rol "3")
+  await NotiService.crearNotifRol(
+    "3",
+    "Nueva demanda de producción",
+    `Se registraron pedidos que requieren producción. Revisa Demandas pendientes. Pedido #${id_pedido}`
+  );
 
   return id_pedido;
 };
@@ -68,176 +85,101 @@ export const actualizarDetalle = async (
   entregado: boolean,
   fecha_estimada_entrega: string
 ) => {
-  // Nota: aquí NO ejecutamos lógica de stock; sólo actualizamos fecha/flag simple.
-  // La lógica de stock va en actualizarEntregaDetalleTransaccional.
-  await PedidoModel.updateDetallePedido(
-    id_detalle,
-    entregado,
-    fecha_estimada_entrega
-  );
+  await PedidoModel.updateDetallePedido(id_detalle, entregado, fecha_estimada_entrega);
 };
 
 /**
- * Reglas extra activadas:
- * 1) Bloquear entrega si pedido está Cancelado (ORDER_CANCELED -> 400).
- * 2) Permitir revertir entrega (true->false) SOLO si:
- *    - Usuario es admin (rol "1"), y
- *    - Han pasado ≤ 24 horas desde la entrega (fecha_entrega_real).
- *    Si no, REVERT_NOT_ALLOWED -> 400.
- * 3) Kardex (MovimientosInventario): registrar SALIDA en entrega y ENTRADA en reversión.
- *
- * Requiere columnas/tabla:
- * - DetalleDePedidos.fecha_entrega_real DATETIME NULL
- * - Tabla MovimientosInventario (ver SQL de migración al final).
+ * Transaccional: aplicar reglas de negocio al marcar entrega de un detalle.
+ * Reglas:
+ *  - Si el pedido está "Cancelado" => error ORDER_CANCELED
+ *  - Si se marca entregado=true => validar stock suficiente; descontar stock; insertar movimiento SALIDA
+ *  - Si se intenta revertir (entregado=false) cuando ya estaba entregado => error REVERT_NOT_ALLOWED
+ *  - Si al finalizar todos los detalles del pedido están entregados => estado del pedido = "Entregado"
+ * Devuelve: { ok: true, pedidoActualizado?: boolean }
  */
-export async function actualizarEntregaDetalleTransaccional(
+export const actualizarEntregaDetalleTransaccional = async (
   pedidoId: number,
   detalleId: number,
   entregado: boolean,
   userId?: number,
-  userRol?: string
-) {
-  const conn = await (pool as any).getConnection();
+  _userRol?: string
+) => {
+  // Inicia transacción
+  const conn = await PedidoModel.getConnection();
   try {
     await conn.beginTransaction();
 
-    // 0) Estado del pedido (bloqueo por cancelado)
-    const [pedidoRows] = await conn.query(
-      `SELECT estado_pedido FROM Pedidos WHERE id_pedido = ? FOR UPDATE`,
-      [pedidoId]
-    );
-    if (!(pedidoRows as any[]).length) throw new Error("Pedido no encontrado");
-    const estadoPedido = (pedidoRows as any)[0].estado_pedido as string;
-    if (estadoPedido === "Cancelado") {
-      const err: any = new Error("El pedido está cancelado. No se permiten entregas.");
-      err.code = "ORDER_CANCELED";
-      throw err;
+    const pedido = await PedidoModel.getPedidoByIdTx(conn, pedidoId);
+    if (!pedido) {
+      throw Object.assign(new Error("Pedido no encontrado"), { code: "NOT_FOUND" });
+    }
+    if (pedido.estado_pedido === "Cancelado") {
+      throw Object.assign(new Error("El pedido está cancelado."), { code: "ORDER_CANCELED" });
     }
 
-    // 1) Trae detalle + producto + estado actual (FOR UPDATE)
-    const [rows] = await conn.query(
-      `SELECT d.id_detalle_pedido, d.id_producto, d.cantidad_pedida, d.entregado, d.fecha_entrega_real,
-              p.id_pedido, pr.cantidad_stock, pr.nombre_producto, pr.tipo
-       FROM DetalleDePedidos d
-       JOIN Pedidos p ON p.id_pedido = d.id_pedido
-       JOIN Productos pr ON pr.id_producto = d.id_producto
-       WHERE d.id_detalle_pedido = ? AND p.id_pedido = ? FOR UPDATE`,
-      [detalleId, pedidoId]
-    );
-    if (!(rows as any[]).length) throw new Error("Detalle no encontrado");
-    const det = (rows as any)[0] as {
-      id_detalle_pedido: number;
-      id_producto: string;
-      cantidad_pedida: number;
-      entregado: number; // 0/1
-      fecha_entrega_real: Date | null;
-      id_pedido: number;
-      cantidad_stock: number;
-      nombre_producto: string;
-      tipo: string;
-    };
+    const det = await PedidoModel.getDetalleByIdTx(conn, detalleId);
+    if (!det || det.id_pedido !== pedidoId) {
+      throw Object.assign(new Error("Detalle no encontrado o no pertenece al pedido."), { code: "NOT_FOUND" });
+    }
 
-    const wasDelivered = !!det.entregado;
+    // Idempotencia simple:
+    if (!!det.entregado === entregado) {
+      await conn.commit();
+      return { ok: true, pedidoActualizado: false, message: "Sin cambios" };
+    }
 
-    // 2) Reglas de reversión (true -> false): solo admin y ≤ 24 h
-    if (!entregado && wasDelivered) {
-      const isAdmin = userRol === "1";
-      const ts = det.fecha_entrega_real ? new Date(det.fecha_entrega_real).getTime() : 0;
-      const now = Date.now();
-      const hours = ts ? (now - ts) / 36e5 : Infinity;
+    // Si quieren revertir una entrega ya realizada: bloqueado
+    if (det.entregado === 1 && entregado === false) {
+      throw Object.assign(new Error("No está permitido revertir una entrega ya confirmada."), { code: "REVERT_NOT_ALLOWED" });
+    }
 
-      if (!isAdmin || hours > 24) {
-        const err: any = new Error("No se permite revertir la entrega (solo admin y dentro de 24 horas).");
-        err.code = "REVERT_NOT_ALLOWED";
-        throw err;
+    // Marcar como entregado => validar stock y descontar
+    if (entregado === true) {
+      const prod = await ProductoModel.getProductoByIdTx(conn, det.id_producto);
+      if (!prod) {
+        throw Object.assign(new Error("Producto no encontrado"), { code: "NOT_FOUND" });
       }
+      const cantidadNecesaria = Number(det.cantidad_pedida) || 0;
+      const stockActual = Number(prod.cantidad_stock) || 0;
 
-      // Reposición de stock
-      await conn.query(
-        `UPDATE Productos
-         SET cantidad_stock = cantidad_stock + ?
-         WHERE id_producto = ?`,
-        [det.cantidad_pedida, det.id_producto]
-      );
-
-      // Kardex ENTRADA (reversión)
-      await conn.query(
-        `INSERT INTO MovimientosInventario
-          (id_producto, tipo_movimiento, cantidad, motivo, referencia, id_usuario)
-         VALUES (?, 'ENTRADA', ?, 'Reversión de entrega', ?, ?)`,
-        [det.id_producto, det.cantidad_pedida, `PED-${pedidoId}/DET-${detalleId}`, userId || null]
-      );
-    }
-
-    // 3) Si se marca entregado y antes no lo estaba → validar stock, descontar, setear fecha_entrega_real
-    if (entregado && !wasDelivered) {
-      if (det.cantidad_stock < det.cantidad_pedida) {
-        const err: any = new Error(
-          `Stock insuficiente para ${det.nombre_producto} (${det.tipo}). ` +
-          `Stock: ${det.cantidad_stock}, requerido: ${det.cantidad_pedida}.`
+      if (stockActual < cantidadNecesaria) {
+        throw Object.assign(
+          new Error("No hay existencias suficientes para completar la entrega. Contacte con el administrador."),
+          { code: "INSUFFICIENT_STOCK" }
         );
-        err.code = "INSUFFICIENT_STOCK";
-        throw err;
       }
-      // Descontar stock
-      await conn.query(
-        `UPDATE Productos
-         SET cantidad_stock = cantidad_stock - ?
-         WHERE id_producto = ?`,
-        [det.cantidad_pedida, det.id_producto]
-      );
 
-      // Kardex SALIDA
-      await conn.query(
-        `INSERT INTO MovimientosInventario
-          (id_producto, tipo_movimiento, cantidad, motivo, referencia, id_usuario)
-         VALUES (?, 'SALIDA', ?, 'Entrega de pedido', ?, ?)`,
-        [det.id_producto, det.cantidad_pedida, `PED-${pedidoId}/DET-${detalleId}`, userId || null]
-      );
+      // 1) Actualizar detalle
+      await PedidoModel.updateDetalleEntregaTx(conn, detalleId, true);
+
+      // 2) Descontar stock
+      await ProductoModel.adjustStockTx(conn, det.id_producto, -cantidadNecesaria);
+
+      // 3) Movimiento de Kardex (SALIDA)
+      await ProductoModel.insertMovimientoTx(conn, {
+        id_producto: det.id_producto,
+        tipo_movimiento: "SALIDA",
+        cantidad: cantidadNecesaria,
+        motivo: "Entrega de pedido",
+        referencia: `Pedido ${pedidoId} - Detalle ${detalleId}`,
+        id_usuario: userId ?? null
+      });
     }
 
-    // 4) Actualiza flag del detalle y fecha_entrega_real
-    if (entregado !== wasDelivered) {
-      await conn.query(
-        `UPDATE DetalleDePedidos
-         SET entregado = ?, fecha_entrega_real = (CASE WHEN ?=1 THEN NOW() ELSE NULL END)
-         WHERE id_detalle_pedido = ?`,
-        [entregado ? 1 : 0, entregado ? 1 : 0, detalleId]
-      );
-    }
-
-    // 5) ¿El pedido quedó completamente entregado?
-    const [rowsPend] = await conn.query(
-      `SELECT COUNT(*) AS pendientes
-       FROM DetalleDePedidos
-       WHERE id_pedido = ? AND entregado = 0`,
-      [pedidoId]
-    );
-    const pendientes = (rowsPend as any)[0]?.pendientes ?? 0;
-    let pedidoCompletado = false;
+    // ¿Todos entregados?
+    const pendientes = await PedidoModel.countDetallesPendientesTx(conn, pedidoId);
+    let pedidoActualizado = false;
     if (pendientes === 0) {
-      pedidoCompletado = true;
-      await conn.query(
-        `UPDATE Pedidos
-         SET estado_pedido = 'Entregado', fecha_entrega = NOW()
-         WHERE id_pedido = ?`,
-        [pedidoId]
-      );
+      await PedidoModel.updateEstadoPedidoTx(conn, pedidoId, "Entregado");
+      pedidoActualizado = true;
     }
 
     await conn.commit();
-    return {
-      ok: true,
-      pedidoId,
-      detalleId,
-      applied: entregado !== wasDelivered,
-      pedidoCompletado,
-      nuevoEstadoPedido: pedidoCompletado ? "Entregado" : undefined,
-    };
-  } catch (e: any) {
+    return { ok: true, pedidoActualizado };
+  } catch (err) {
     await conn.rollback();
-    throw e;
+    throw err;
   } finally {
-    conn.release();
+    await conn.release();
   }
-}
+};

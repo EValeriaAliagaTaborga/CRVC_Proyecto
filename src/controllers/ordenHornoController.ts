@@ -13,13 +13,20 @@ export const listarOrdenes = async (_req: Request, res: Response) => {
 
 export const obtenerOrdenEspecifica = async (req: Request, res: Response) => {
   try {
-      const { id } = req.params;
-      const orden = await OrdenService.obtenerOrdenById(Number(id));
-      res.json(orden);
-    } catch (error: any) {
-      res.status(500).json({ message: "Error al obtener orden", error: error.message });
+    const { id } = req.params;
+    const idNum = Number(id);
+    if (!Number.isFinite(idNum)) {
+      res.status(400).json({ message: "ID de orden inválido" });
     }
-  };
+    const orden = await OrdenService.obtenerOrdenById(idNum);
+    if (!orden) {
+     res.status(404).json({ message: "Orden no encontrada" });
+    }
+    res.json(orden);
+  } catch (error: any) {
+    res.status(500).json({ message: "Error al obtener orden", error: error.message });
+  }
+};
 
 export const crearOrden = async (req: Request, res: Response) => {
   try {

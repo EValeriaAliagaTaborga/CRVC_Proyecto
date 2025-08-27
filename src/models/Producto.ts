@@ -10,7 +10,21 @@ export const getProductoById = async (id: string) => {
   return rows[0];
 };
 
-export const createProducto = async (id_producto:string, nombre_producto: string, tipo: string, cantidad_stock: number, precio_unitario: number) => {
+export const getProductoByNombreTipo = async (nombre: string, tipo: string) => {
+  const rows = await pool.query(
+    "SELECT * FROM Productos WHERE nombre_producto = ? AND tipo = ? LIMIT 1",
+    [nombre, tipo]
+  );
+  return rows[0];
+};
+
+export const createProducto = async (
+  id_producto:string,
+  nombre_producto: string,
+  tipo: string,
+  cantidad_stock: number,
+  precio_unitario: number
+) => {
   const result: any = await pool.query(
     "INSERT INTO Productos (id_producto, nombre_producto, tipo, cantidad_stock, precio_unitario) VALUES (?, ?, ?, ?, ?)",
     [id_producto, nombre_producto, tipo, cantidad_stock, precio_unitario]
@@ -35,7 +49,39 @@ export const deleteProducto = async (id_producto: string) => {
   await pool.query("DELETE FROM Productos WHERE id_producto = ?", [id_producto]);
 };
 
-/** Kardex: movimientos por producto */
+/** ============ TX helpers ============ */
+
+export const getProductoByIdTx = async (conn: any, id: string) => {
+  const rows = await conn.query("SELECT * FROM Productos WHERE id_producto = ? LIMIT 1", [id]);
+  return rows[0];
+};
+
+export const adjustStockTx = async (conn: any, id_producto: string, delta: number) => {
+  await conn.query(
+    `UPDATE Productos SET cantidad_stock = cantidad_stock + ? WHERE id_producto = ?`,
+    [delta, id_producto]
+  );
+};
+
+export const insertMovimientoTx = async (conn: any, args: {
+  id_producto: string;
+  tipo_movimiento: "ENTRADA" | "SALIDA";
+  cantidad: number;
+  motivo?: string | null;
+  referencia?: string | null;
+  id_usuario?: number | null;
+}) => {
+  const { id_producto, tipo_movimiento, cantidad, motivo = null, referencia = null, id_usuario = null } = args;
+  await conn.query(
+    `INSERT INTO MovimientosInventario
+      (id_producto, tipo_movimiento, cantidad, motivo, referencia, id_usuario, fecha)
+     VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+    [id_producto, tipo_movimiento, cantidad, motivo, referencia, id_usuario]
+  );
+};
+
+/** ============ Kardex lecturas ============ */
+
 export const getMovimientosInventarioByProducto = async (
   id_producto: string,
   opts?: { tipo?: "ENTRADA" | "SALIDA" | ""; desde?: string; hasta?: string }
@@ -57,7 +103,6 @@ export const getMovimientosInventarioByProducto = async (
   return rows;
 };
 
-/** Kardex: movimientos de TODOS los productos */
 export const getMovimientosInventarioAll = async (
   opts?: { tipo?: "ENTRADA" | "SALIDA" | ""; desde?: string; hasta?: string }
 ) => {
